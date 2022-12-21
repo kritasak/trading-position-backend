@@ -107,4 +107,8 @@ def getInfo():
 		else:
 			return '<h1>Password is incorrect</h1>'
 
+# Change Password
+
+# Update API
+
 app.run()
