@@ -35,12 +35,6 @@ def sign(data):
 	h = hmac.new(API_SECRET, msg=j.encode(), digestmod=hashlib.sha256)
 	return h.hexdigest()
 
-header = {
-	'Accept': 'application/json',
-	'Content-Type': 'application/json',
-	'X-BTK-APIKEY': API_KEY,
-}
-
 @app.route("/")
 def hello_world():
     return "<p>Hello, World!</p>"
@@ -56,6 +50,11 @@ def history():
 	sym=request.args.get('sym')
 
 	# Code from Bitkub
+	header = {
+		'Accept': 'application/json',
+		'Content-Type': 'application/json',
+		'X-BTK-APIKEY': API_KEY,
+	}
 	response = requests.get(API_HOST + '/api/servertime')
 	ts = int(response.text)
 
@@ -116,11 +115,55 @@ def changePassword():
 
 	user = userCollection.find_one({"email": email})
 	if oldPassword == user["password"]:
-		userCollection.update_one({"email": "example@gmail.com"}, {"$set": {"password": newPassword}})
+		userCollection.update_one({"email": email}, {"$set": {"password": newPassword}})
 		return '<h1>Password is updated</h1>'
 	else:
 		return '<h1>Password is incorrect</h1>'
 
-# Update API
+# Add API
+@app.route('/addapi')
+def addAPI():
+	email=request.args.get('email')
+	exchange=request.args.get('exchange')
+	key=request.args.get('key')
+	secret=request.args.get('secret')
+
+	user = userCollection.find_one({"email": email})
+	updateInfo = dict()
+	updateInfo['api'] = user['api']
+
+	updateInfo['api'][exchange] = {'API_KEY': key, 'API_SECRET': secret}
+	userCollection.update_one({"email": email}, {"$set": updateInfo})
+	return '<h1>Add API Sucessful</h1>'
+
+# Edit API
+@app.route('/editapi')
+def editAPI():
+	email=request.args.get('email')
+	exchange=request.args.get('exchange')
+	key=request.args.get('key')
+	secret=request.args.get('secret')
+
+	user = userCollection.find_one({"email": email})
+	updateInfo = dict()
+	updateInfo['api'] = user['api']
+
+	updateInfo['api'][exchange] = {'API_KEY': key, 'API_SECRET': secret}
+	userCollection.update_one({"email": email}, {"$set": updateInfo})
+	return '<h1>Edit API Sucessful</h1>'
+
+# Delete API
+@app.route('/deleteapi')
+def deleteAPI():
+	email=request.args.get('email')
+	exchange=request.args.get('exchange')
+
+	user = userCollection.find_one({"email": email})
+	updateInfo = dict()
+	updateInfo['api'] = user['api']
+
+	del updateInfo['api'][exchange]
+	userCollection.update_one({"email": email}, {"$set": updateInfo})
+	return '<h1>Delete API Sucessful</h1>'
 
 app.run()
