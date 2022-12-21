@@ -108,6 +108,18 @@ def getInfo():
 			return '<h1>Password is incorrect</h1>'
 
 # Change Password
+@app.route('/changepassword')
+def changePassword():
+	email=request.args.get('email')
+	oldPassword = request.args.get('old')
+	newPassword = request.args.get('new')
+
+	user = userCollection.find_one({"email": email})
+	if oldPassword == user["password"]:
+		userCollection.update_one({"email": "example@gmail.com"}, {"$set": {"password": newPassword}})
+		return '<h1>Password is updated</h1>'
+	else:
+		return '<h1>Password is incorrect</h1>'
 
 # Update API
 
