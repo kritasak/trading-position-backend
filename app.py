@@ -44,6 +44,16 @@ def greeting():
 	name=request.args.get('name')
 	return '<h3>Hello '+name+'</h3>'
 
+# Creating Token
+@app.route('/token', methods=["POST", "GET"])
+def token():
+	if request.method == "POST":
+		tokenValue = {"token": "test123"}
+		return jsonify(tokenValue)
+	if request.method == "GET":
+		tokenValue = {"token": "test123"}
+		return jsonify(tokenValue)
+
 # Trading History
 @app.route('/history')
 def history():
