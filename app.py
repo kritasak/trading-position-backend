@@ -10,6 +10,9 @@ import hmac
 import json
 import requests
 
+import plotly.graph_objects as go
+import pandas as pd
+
 app = Flask(__name__)
 CORS(app, support_credentials=True)
 
@@ -70,6 +73,22 @@ def history():
 	info = response.json()
 
 	return jsonify(info['result'])
+
+# Graph
+@app.route('/graph')
+def graph():
+	response = requests.get(API_HOST + '/api/servertime')
+	ts = int(response.text)
+	PARAMS = {
+		'symbol': "BTC_THB",
+		'resolution': "240",
+		'from': 1661124427,
+		'to': ts
+	}
+
+	info = requests.get(API_HOST + '/tradingview/history', params=PARAMS)
+
+	return info.json()
 
 # Sign Up
 @app.route('/adduser')
