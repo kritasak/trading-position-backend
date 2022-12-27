@@ -10,9 +10,6 @@ import hmac
 import json
 import requests
 
-import plotly.graph_objects as go
-import pandas as pd
-
 app = Flask(__name__)
 CORS(app, support_credentials=True)
 
