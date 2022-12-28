@@ -48,6 +48,9 @@ def greeting():
 @app.route('/token', methods=["POST", "GET"])
 def token():
 	if request.method == "POST":
+		data = request.get_json()
+		# data = json.loads(request.data)
+		print(data)
 		tokenValue = {"token": "test123"}
 		return jsonify(tokenValue)
 	if request.method == "GET":
