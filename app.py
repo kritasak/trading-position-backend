@@ -139,21 +139,40 @@ def addUser():
 			return '<h1>Email already exists</h1>'
 
 # Log in
-@app.route('/getinfo')
+@app.route('/getinfo', methods=["POST", "GET"])
 def getInfo():
-	email=request.args.get('email')
-	password=request.args.get('password')
+	if request.method == "POST":
+		data = request.get_json()
+		email = data["email"]
+		password = data["password"]
 
-	user = userCollection.find_one({"email": email})
-	del user["_id"]
-	if user == None:
-		return '<h1>Email does not exist</h1>'
-	else:
-		collectedPassword = user["password"]
-		if password == collectedPassword:
-			return jsonify(user)
+		user = userCollection.find_one({"email": email})
+		if user == None:
+			result = {"result": "Email does not exist"}
+			return jsonify(result)
 		else:
-			return '<h1>Password is incorrect</h1>'
+			collectedPassword = user["password"]
+			if password == collectedPassword:
+				result = {"result": "Successfully Log In"}
+				return jsonify(result)
+			else:
+				result = {"result": "Password is incorrect"}
+				return jsonify(result)
+
+	elif request.method == "GET":
+		email=request.args.get('email')
+		password=request.args.get('password')
+
+		user = userCollection.find_one({"email": email})
+		del user["_id"]
+		if user == None:
+			return '<h1>Email does not exist</h1>'
+		else:
+			collectedPassword = user["password"]
+			if password == collectedPassword:
+				return jsonify(user)
+			else:
+				return '<h1>Password is incorrect</h1>'
 
 # Change Password
 @app.route('/changepassword')
