@@ -53,7 +53,7 @@ def token():
 		print(data)
 		tokenValue = {"token": "test123"}
 		return jsonify(tokenValue)
-	if request.method == "GET":
+	elif request.method == "GET":
 		tokenValue = {"token": "test123"}
 		return jsonify(tokenValue)
 
@@ -101,22 +101,42 @@ def graph():
 	return info.json()
 
 # Sign Up
-@app.route('/adduser')
+@app.route('/adduser', methods=["POST", "GET"])
 def addUser():
-	email=request.args.get('email')
-	password=request.args.get('password')
+	if request.method == "POST":
+		data = request.get_json()
+		email = data["email"]
+		password = data["password"]
 
-	infoDict = {
-		"email": email,
-		"password": password,
-		"api": {}
-	}
-	user = userCollection.find_one({"email": email})
-	if user == None:
-		userCollection.insert_one(infoDict)
-		return '<h1>Successfully added</h1>'
-	else:
-		return '<h1>Email already exists</h1>'
+		infoDict = {
+			"email": email,
+			"password": password,
+			"api": {}
+		}
+		user = userCollection.find_one({"email": email})
+		if user == None:
+			userCollection.insert_one(infoDict)
+			result = {"result": "Sucessfully Sign Up"}
+			return jsonify(result)
+		else:
+			result = {"result": "Email already exists"}
+			return jsonify(result)
+
+	elif request.method == "GET":
+		email=request.args.get('email')
+		password=request.args.get('password')
+
+		infoDict = {
+			"email": email,
+			"password": password,
+			"api": {}
+		}
+		user = userCollection.find_one({"email": email})
+		if user == None:
+			userCollection.insert_one(infoDict)
+			return '<h1>Successfully Sign Up</h1>'
+		else:
+			return '<h1>Email already exists</h1>'
 
 # Log in
 @app.route('/getinfo')
