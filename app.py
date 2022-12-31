@@ -139,8 +139,8 @@ def addUser():
 			return '<h1>Email already exists</h1>'
 
 # Log in
-@app.route('/getinfo', methods=["POST", "GET"])
-def getInfo():
+@app.route('/checklogin', methods=["POST", "GET"])
+def checkLogin():
 	if request.method == "POST":
 		data = request.get_json()
 		email = data["email"]
