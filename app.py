@@ -164,15 +164,40 @@ def checkLogin():
 		password=request.args.get('password')
 
 		user = userCollection.find_one({"email": email})
-		del user["_id"]
 		if user == None:
 			return '<h1>Email does not exist</h1>'
 		else:
+			del user["_id"]
 			collectedPassword = user["password"]
 			if password == collectedPassword:
 				return jsonify(user)
 			else:
 				return '<h1>Password is incorrect</h1>'
+
+# Get Info
+@app.route('/getinfo', methods=["POST", "GET"])
+def getInfo():
+	if request.method == "POST":
+		data = request.get_json()
+		print(data)
+		email = data["email"]
+
+		user = userCollection.find_one({"email": email})
+		if user == None:
+			return jsonify({})
+		else:
+			del user["_id"]
+			return jsonify(user)
+
+	elif request.method == "GET":
+		email=request.args.get('email')
+
+		user = userCollection.find_one({"email": email})
+		if user == None:
+			return '<h1>Email does not exist</h1>'
+		else:
+			del user["_id"]
+			return jsonify(user)
 
 # Change Password
 @app.route('/changepassword')
