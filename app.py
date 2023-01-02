@@ -200,18 +200,34 @@ def getInfo():
 			return jsonify(user)
 
 # Change Password
-@app.route('/changepassword')
+@app.route('/changepassword', methods=["POST", "GET"])
 def changePassword():
-	email=request.args.get('email')
-	oldPassword = request.args.get('old')
-	newPassword = request.args.get('new')
+	if request.method == "POST":
+		data = request.get_json()
+		email = data["email"]
+		oldPassword = data["old"]
+		newPassword = data["new"]
 
-	user = userCollection.find_one({"email": email})
-	if oldPassword == user["password"]:
-		userCollection.update_one({"email": email}, {"$set": {"password": newPassword}})
-		return '<h1>Password is updated</h1>'
-	else:
-		return '<h1>Password is incorrect</h1>'
+		user = userCollection.find_one({"email": email})
+		del user["_id"]
+		if oldPassword == user["password"]:
+			userCollection.update_one({"email": email}, {"$set": {"password": newPassword}})
+			user["password"] = newPassword
+			return jsonify(user)
+		else:
+			return jsonify(user)
+
+	elif request.method == "GET":
+		email=request.args.get('email')
+		oldPassword = request.args.get('old')
+		newPassword = request.args.get('new')
+
+		user = userCollection.find_one({"email": email})
+		if oldPassword == user["password"]:
+			userCollection.update_one({"email": email}, {"$set": {"password": newPassword}})
+			return '<h1>Password is updated</h1>'
+		else:
+			return '<h1>Password is incorrect</h1>'
 
 # Add API
 @app.route('/addapi')
