@@ -230,20 +230,38 @@ def changePassword():
 			return '<h1>Password is incorrect</h1>'
 
 # Add API
-@app.route('/addapi')
+@app.route('/addapi', methods=["POST", "GET"])
 def addAPI():
-	email=request.args.get('email')
-	exchange=request.args.get('exchange')
-	key=request.args.get('key')
-	secret=request.args.get('secret')
+	if request.method == "POST":
+		data = request.get_json()
+		email = data["email"]
+		exchange = data["exchange"]
+		publicKey = data["publicKey"]
+		secretKey = data["secretKey"]
 
-	user = userCollection.find_one({"email": email})
-	updateInfo = dict()
-	updateInfo['api'] = user['api']
+		user = userCollection.find_one({"email": email})
+		del user["_id"]
+		updateInfo = dict()
+		updateInfo['api'] = user['api']
 
-	updateInfo['api'][exchange] = {'API_KEY': key, 'API_SECRET': secret}
-	userCollection.update_one({"email": email}, {"$set": updateInfo})
-	return '<h1>Add API Sucessful</h1>'
+		updateInfo['api'][exchange] = {'API_KEY': publicKey, 'API_SECRET': secretKey}
+		user['api'] = updateInfo['api']
+		userCollection.update_one({"email": email}, {"$set": updateInfo})
+		return jsonify(user)
+
+	elif request.method == "GET":
+		email=request.args.get('email')
+		exchange=request.args.get('exchange')
+		key=request.args.get('key')
+		secret=request.args.get('secret')
+
+		user = userCollection.find_one({"email": email})
+		updateInfo = dict()
+		updateInfo['api'] = user['api']
+
+		updateInfo['api'][exchange] = {'API_KEY': key, 'API_SECRET': secret}
+		userCollection.update_one({"email": email}, {"$set": updateInfo})
+		return '<h1>Add API Sucessful</h1>'
 
 # Edit API
 @app.route('/editapi', methods=["POST", "GET"])
@@ -280,17 +298,33 @@ def editAPI():
 		return '<h1>Edit API Sucessful</h1>'
 
 # Delete API
-@app.route('/deleteapi')
+@app.route('/deleteapi', methods=["POST", "GET"])
 def deleteAPI():
-	email=request.args.get('email')
-	exchange=request.args.get('exchange')
+	if request.method == "POST":
+		data = request.get_json()
+		email = data["email"]
+		exchange = data["exchange"]
 
-	user = userCollection.find_one({"email": email})
-	updateInfo = dict()
-	updateInfo['api'] = user['api']
+		user = userCollection.find_one({"email": email})
+		del user["_id"]
+		updateInfo = dict()
+		updateInfo['api'] = user['api']
 
-	del updateInfo['api'][exchange]
-	userCollection.update_one({"email": email}, {"$set": updateInfo})
-	return '<h1>Delete API Sucessful</h1>'
+		del updateInfo['api'][exchange]
+		user['api'] = updateInfo['api']
+		userCollection.update_one({"email": email}, {"$set": updateInfo})
+		return jsonify(user)
+
+	elif request.method == "GET":
+		email=request.args.get('email')
+		exchange=request.args.get('exchange')
+
+		user = userCollection.find_one({"email": email})
+		updateInfo = dict()
+		updateInfo['api'] = user['api']
+
+		del updateInfo['api'][exchange]
+		userCollection.update_one({"email": email}, {"$set": updateInfo})
+		return '<h1>Delete API Sucessful</h1>'
 
 app.run()
