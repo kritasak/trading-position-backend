@@ -58,31 +58,58 @@ def token():
 		return jsonify(tokenValue)
 
 # Trading History
-@app.route('/history')
+@app.route('/history', methods=["POST", "GET"])
 def history():
-	sym=request.args.get('sym')
+	if request.method == "POST":
+		data = request.get_json()
+		sym = data["sym"]
 
-	# Code from Bitkub
-	header = {
-		'Accept': 'application/json',
-		'Content-Type': 'application/json',
-		'X-BTK-APIKEY': API_KEY,
-	}
-	response = requests.get(API_HOST + '/api/servertime')
-	ts = int(response.text)
+		# Code from Bitkub
+		header = {
+			'Accept': 'application/json',
+			'Content-Type': 'application/json',
+			'X-BTK-APIKEY': API_KEY,
+		}
+		response = requests.get(API_HOST + '/api/servertime')
+		ts = int(response.text)
 
-	data = {
-		'sym': sym, #THB_ETH
-		'ts': ts,
-	}
-	signature = sign(data)
-	data['sig'] = signature
+		data = {
+			'sym': sym, #THB_ETH
+			'ts': ts,
+		}
+		signature = sign(data)
+		data['sig'] = signature
 
-	print('Payload with signature: ' + json_encode(data))
-	response = requests.post(API_HOST + '/api/market/my-order-history', headers=header, data=json_encode(data))
-	info = response.json()
+		print('Payload with signature: ' + json_encode(data))
+		response = requests.post(API_HOST + '/api/market/my-order-history', headers=header, data=json_encode(data))
+		info = response.json()
 
-	return jsonify(info['result'])
+		return jsonify(info["result"])
+
+	elif request.method == "GET":
+		sym=request.args.get('sym')
+
+		# Code from Bitkub
+		header = {
+			'Accept': 'application/json',
+			'Content-Type': 'application/json',
+			'X-BTK-APIKEY': API_KEY,
+		}
+		response = requests.get(API_HOST + '/api/servertime')
+		ts = int(response.text)
+
+		data = {
+			'sym': sym, #THB_ETH
+			'ts': ts,
+		}
+		signature = sign(data)
+		data['sig'] = signature
+
+		print('Payload with signature: ' + json_encode(data))
+		response = requests.post(API_HOST + '/api/market/my-order-history', headers=header, data=json_encode(data))
+		info = response.json()
+
+		return jsonify(info['result'])
 
 # Graph
 @app.route('/graph')
