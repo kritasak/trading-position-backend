@@ -29,10 +29,11 @@ userCollection = db.users
 def json_encode(data):
 	return json.dumps(data, separators=(',', ':'), sort_keys=True)
 
-def sign(data):
+def sign(data, secret):
+	byteSecret = bytes(secret, 'utf-8')
 	j = json_encode(data)
 	print('Signing payload: ' + j)
-	h = hmac.new(API_SECRET, msg=j.encode(), digestmod=hashlib.sha256)
+	h = hmac.new(byteSecret, msg=j.encode(), digestmod=hashlib.sha256)
 	return h.hexdigest()
 
 @app.route("/")
@@ -62,29 +63,37 @@ def token():
 def history():
 	if request.method == "POST":
 		data = request.get_json()
+		email = data["email"]
+		exchange = data["exchange"]
 		sym = data["sym"]
+		user = userCollection.find_one({"email": email})
+		if exchange in user["api"].keys():
+			# Code from Bitkub
+			header = {
+				'Accept': 'application/json',
+				'Content-Type': 'application/json',
+				'X-BTK-APIKEY': user["api"][exchange]["API_KEY"],
+			}
+			response = requests.get(API_HOST + '/api/servertime')
+			ts = int(response.text)
 
-		# Code from Bitkub
-		header = {
-			'Accept': 'application/json',
-			'Content-Type': 'application/json',
-			'X-BTK-APIKEY': API_KEY,
-		}
-		response = requests.get(API_HOST + '/api/servertime')
-		ts = int(response.text)
+			data = {
+				'sym': sym, #THB_ETH
+				'ts': ts,
+			}
+			signature = sign(data, user["api"][exchange]["API_SECRET"])
+			data['sig'] = signature
 
-		data = {
-			'sym': sym, #THB_ETH
-			'ts': ts,
-		}
-		signature = sign(data)
-		data['sig'] = signature
+			print('Payload with signature: ' + json_encode(data))
+			response = requests.post(API_HOST + '/api/market/my-order-history', headers=header, data=json_encode(data))
+			info = response.json()
+			if "result" in info.keys():
+				return jsonify(info["result"])
+			else:
+				return jsonify([])
 
-		print('Payload with signature: ' + json_encode(data))
-		response = requests.post(API_HOST + '/api/market/my-order-history', headers=header, data=json_encode(data))
-		info = response.json()
-
-		return jsonify(info["result"])
+		else:
+			return jsonify([])
 
 	elif request.method == "GET":
 		sym=request.args.get('sym')
