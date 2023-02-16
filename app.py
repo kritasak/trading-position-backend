@@ -5,6 +5,9 @@ from flask_cors import CORS, cross_origin
 
 from pymongo import MongoClient
 
+from binance.client import Client
+from datetime import datetime
+
 import hashlib
 import hmac
 import json
@@ -13,10 +16,15 @@ import requests
 app = Flask(__name__)
 CORS(app, support_credentials=True)
 
-# API info
+# Bitkub API info
 API_HOST = 'https://api.bitkub.com'
-API_KEY = config.API_KEY
-API_SECRET = bytes(config.API_SECRET, 'utf-8')
+BITKUB_API_KEY = config.BITKUB_API_KEY
+BITKUB_API_SECRET = config.BITKUB_API_SECRET
+#BITKUB_API_SECRET = bytes(config.BITKUB_API_SECRET, 'utf-8')
+
+# Binance API info
+BINANCE_API_KEY = config.BINANCE_API_KEY
+BINANCE_API_SECRET = config.BINANCE_API_SECRET
 
 # MongoDB info
 MONGODB_USERNAME = config.MONGODB_USERNAME
@@ -68,11 +76,59 @@ def history():
 		sym = data["sym"]
 		user = userCollection.find_one({"email": email})
 		if exchange in user["api"].keys():
+			if exchange == "bitkub":
+				# Code from Bitkub
+				header = {
+					'Accept': 'application/json',
+					'Content-Type': 'application/json',
+					'X-BTK-APIKEY': user["api"][exchange]["API_KEY"],
+				}
+				response = requests.get(API_HOST + '/api/servertime')
+				ts = int(response.text)
+
+				data = {
+					'sym': sym, #THB_ETH
+					'ts': ts,
+				}
+				signature = sign(data, user["api"][exchange]["API_SECRET"])
+				data['sig'] = signature
+
+				print('Payload with signature: ' + json_encode(data))
+				response = requests.post(API_HOST + '/api/market/my-order-history', headers=header, data=json_encode(data))
+				info = response.json()
+				if "result" in info.keys():
+					historyData = []
+					for oneInfo in info["result"]:
+						historyData.append({"date": oneInfo["date"], "side": oneInfo["side"], "price": oneInfo["rate"], "amountBase": oneInfo["amount"], "amountQuote": str(round(float(oneInfo["rate"])*float(oneInfo["amount"]), 4))})
+					return jsonify(historyData)
+				else:
+					return jsonify([])
+			elif exchange == "binance":
+				client = Client(user["api"][exchange]["API_KEY"], user["api"][exchange]["API_SECRET"])
+				info = client.get_my_trades(symbol=sym) #BTCUSDT
+				historyData = []
+				for oneInfo in info:
+					side = ""
+					if oneInfo["isBuyer"]:
+						side = "buy"
+					else:
+						side = "sell"
+					historyData.append({"date": datetime.fromtimestamp(int(oneInfo["time"]/1000)).strftime("%Y-%m-%d %H:%M:%S"), "side": side, "price": oneInfo["price"], "amountBase": oneInfo["qty"], "amountQuote": oneInfo["quoteQty"]})
+				return jsonify(historyData)
+
+		else:
+			return jsonify([])
+
+	elif request.method == "GET":
+		sym=request.args.get('sym')
+		exchange=request.args.get('exchange')
+
+		if exchange == "bitkub":
 			# Code from Bitkub
 			header = {
 				'Accept': 'application/json',
 				'Content-Type': 'application/json',
-				'X-BTK-APIKEY': user["api"][exchange]["API_KEY"],
+				'X-BTK-APIKEY': BITKUB_API_KEY,
 			}
 			response = requests.get(API_HOST + '/api/servertime')
 			ts = int(response.text)
@@ -81,46 +137,21 @@ def history():
 				'sym': sym, #THB_ETH
 				'ts': ts,
 			}
-			signature = sign(data, user["api"][exchange]["API_SECRET"])
+			signature = sign(data, BITKUB_API_SECRET)
 			data['sig'] = signature
 
 			print('Payload with signature: ' + json_encode(data))
 			response = requests.post(API_HOST + '/api/market/my-order-history', headers=header, data=json_encode(data))
 			info = response.json()
-			if "result" in info.keys():
-				return jsonify(info["result"])
-			else:
-				return jsonify([])
-
+			return jsonify(info['result'])
+		elif exchange == "binance":
+			client = Client(BINANCE_API_KEY, BINANCE_API_SECRET)
+			info = client.get_my_trades(symbol=sym) #BTCUSDT
+			return jsonify(info)
 		else:
-			return jsonify([])
+			return '<h3>Exchange is wrong!</h3>'
 
-	elif request.method == "GET":
-		sym=request.args.get('sym')
-
-		# Code from Bitkub
-		header = {
-			'Accept': 'application/json',
-			'Content-Type': 'application/json',
-			'X-BTK-APIKEY': API_KEY,
-		}
-		response = requests.get(API_HOST + '/api/servertime')
-		ts = int(response.text)
-
-		data = {
-			'sym': sym, #THB_ETH
-			'ts': ts,
-		}
-		signature = sign(data)
-		data['sig'] = signature
-
-		print('Payload with signature: ' + json_encode(data))
-		response = requests.post(API_HOST + '/api/market/my-order-history', headers=header, data=json_encode(data))
-		info = response.json()
-
-		return jsonify(info['result'])
-
-# Graph
+# Graph (Bitkub)
 @app.route('/graph')
 def graph():
 	response = requests.get(API_HOST + '/api/servertime')
