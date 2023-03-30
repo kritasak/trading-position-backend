@@ -151,6 +151,64 @@ def history():
 		else:
 			return '<h3>Exchange is wrong!</h3>'
 
+# Balances
+@app.route('/balance', methods=["POST", "GET"])
+def balance():
+	if request.method == "POST":
+		data = request.get_json()
+		email = data["email"]
+		exchange = data["exchange"]
+		user = userCollection.find_one({"email": email})
+		if exchange in user["api"].keys():
+			if exchange == "bitkub":
+				# Code from Bitkub
+				header = {
+					'Accept': 'application/json',
+					'Content-Type': 'application/json',
+					'X-BTK-APIKEY': user["api"][exchange]["API_KEY"],
+				}
+				response = requests.get(API_HOST + '/api/servertime')
+				ts = int(response.text)
+
+				data = {
+					'ts': ts,
+				}
+				signature = sign(data, user["api"][exchange]["API_SECRET"])
+				data['sig'] = signature
+
+				print('Payload with signature: ' + json_encode(data))
+				response = requests.post(API_HOST + '/api/market/balances', headers=header, data=json_encode(data))
+				info = response.json()
+				if "result" in info.keys():
+					return jsonify(info["result"])
+				else:
+					return jsonify([])
+			elif exchange == "binance":
+				client = Client(user["api"][exchange]["API_KEY"], user["api"][exchange]["API_SECRET"])
+				info = client.get_account()
+				if "balances" in info.keys():
+					balanceData = []
+					for oneInfo in info["balances"]:
+						if(float(oneInfo['free'])>0):
+							balanceData.append({"asset": oneInfo["asset"], "free": oneInfo["free"]})
+					return jsonify(balanceData)
+				else:
+					return jsonify([])
+
+		else:
+			return jsonify([])
+
+	elif request.method == "GET":
+		exchange = request.args.get('exchange')
+		if exchange == "bitkub":
+			data = {"bitkub": True}
+			return jsonify(data)
+		elif exchange == "binance":
+			data = {"binance": True}
+			return jsonify(data)
+		else:
+			return jsonify({"data": {}})
+
 # Graph (Bitkub)
 @app.route('/graph')
 def graph():
