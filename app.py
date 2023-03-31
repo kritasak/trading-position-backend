@@ -180,7 +180,11 @@ def balance():
 				response = requests.post(API_HOST + '/api/market/balances', headers=header, data=json_encode(data))
 				info = response.json()
 				if "result" in info.keys():
-					return jsonify(info["result"])
+					balanceData = []
+					for keys, values in info["result"].items():
+						if values["available"] > 0:
+							balanceData.append({"asset": keys, "free": values["available"]})
+					return jsonify(balanceData)
 				else:
 					return jsonify([])
 			elif exchange == "binance":
